@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Chat Container */
+    .chat-window {
+      width: 100%;
+      max-width: 450px;
+      height: 80vh;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Message Area */
+    #chatContainer {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      word-break: break-word;
+      position: relative;
+      line-height: 1.4;
+    }
+    .bubble.user {
+      background: #0084ff;
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.bot {
+      background: #ececec;
+      color: #333;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Input Area */
+    #inputRow {
+      display: flex;
+      padding: 10px;
+      background: #fafafa;
+      border-top: 1px solid #ddd;
+    }
+    #inputRow input {
+      flex: 1;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 10px 15px;
+      font-size: 1rem;
+      outline: none;
+    }
+    #inputRow button {
+      margin-left: 10px;
+      background: #0084ff;
+      border: none;
+      border-radius: 20px;
+      padding: 0 20px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #inputRow button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    #inputRow button:hover:not(:disabled) {
+      background: #006fcc;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-window">
+    <!-- Message display area -->
+    <div id="chatContainer"></div>
+
+    <!-- Input form -->
+    <form id="form" autocomplete="off">
+      <div id="inputRow">
+        <input
+          type="text"
+          id="input"
+          placeholder="Type your message..."
+          required
+        />
+        <button type="submit" id="sendBtn">Send</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Grab DOM elements
+    const form    = document.getElementById('form');
+    const input   = document.getElementById('input');
+    const chat    = document.getElementById('chatContainer');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Handle form submission
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Append user message
+      appendMessage('user', message);
+      input.value = '';
+      sendBtn.disabled = true;
+
+      try {
+        // Send to API
+        const res = await fetch('/api/v1/chat/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        if (!res.ok) {
+          // Handle HTTP error codes
+          appendMessage('bot', `❌ Server error: ${res.status}`);
+          return;
+        }
+
+        const data = await res.json();
+        // Extract reply (prefer `content` then `response`)
+        const reply = data.content ?? data.response ?? '';
+        if (!reply) {
+          appendMessage('bot', '❌ Invalid response from server');
+        } else {
+          appendMessage('bot', reply);
+        }
+
+      } catch (err) {
+        // Network or parsing error
+        console.error('Fetch error:', err);
+        appendMessage('bot', '❌ Could not reach server');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    /**
+     * Create and append a chat bubble
+     * @param {'user'|'bot'} speaker
+     * @param {string} text
+     */
+    function appendMessage(speaker, text) {
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${speaker}`;
+      bubble.textContent = text;
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>

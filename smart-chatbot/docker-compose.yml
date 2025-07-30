@@ -1,0 +1,29 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: chatbot_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=chatbot_db
+
+  app:
+    build: .
+    container_name: chatbot_api
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - DATABASE_NAME=chatbot_db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  mongodb_data:
