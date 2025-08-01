@@ -23,7 +23,7 @@ Deep Research is a powerful tool for automated deep research that leverages:
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/sinahosseinzadeh97/GenAI.git
 cd deep-research
 ```
 
