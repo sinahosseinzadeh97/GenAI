@@ -172,5 +172,5 @@ This project is licensed under the MIT License.
 ---
 
 **Status**: ✅ **Production Ready** — Complete legal document analysis with English AI responses and full citation support.
-
-**Built with ❤️ for the legal technology community**
+**https://www.linkedin.com/in/sina-hosseinzade20/**
+**Built by SinaMohammadHosseinzadeh**
