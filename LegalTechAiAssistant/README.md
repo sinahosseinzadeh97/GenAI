@@ -1,33 +1,176 @@
-# LegalTech AI Assistant — MVP
+# 🏛️ LegalTech AI Assistant
 
-An MVP to upload legal documents, build a local FAISS index, and answer questions with citations using a simple multi‑agent flow. Includes optional n8n automation webhooks.
+A comprehensive AI-powered legal document analysis system built with React, FastAPI, and OpenAI GPT-4. Upload legal documents and ask questions to receive intelligent responses with proper source citations and relevant legal references.
 
-## Quick Start
+## 🚀 Features
 
-1. Copy `.env.example` → `.env` and adjust values.
-2. `docker-compose up --build`
-3. Open the frontend at http://localhost:5173 (backend at http://localhost:8000)
+- **📄 Document Upload & Processing**: Upload PDF and text legal documents
+- **🤖 AI-Powered Analysis**: GPT-4 powered intelligent responses in English
+- **📚 Source Citations**: Automatic citation of relevant document sections
+- **⚖️ Legal Database Integration**: GDPR and other legal references
+- **🌐 Modern Web Interface**: React-based responsive frontend
+- **🔍 Vector Search**: Advanced semantic search through legal documents
+- **🐳 Docker Deployment**: Complete containerized solution
 
-### API Endpoints
-- `POST /documents` — Upload a document (PDF/DOCX/TXT). Returns `{document_id, workflow_id}` and runs background analysis + indexing.
-- `POST /query` — Body `{ question, top_k?, scope_doc_ids?, action? }` → returns RAG `answer`, `sources`, `laws`, and a `workflow_id`.
-- `GET /workflows/{id}` — Retrieve workflow status/result JSON.
+## 🏃‍♂️ Quick Start
 
-### Multi‑Agent (MVP)
-- **Agent 1 – Document Analyzer**: Summarizes and tags on upload (background).
-- **Agent 2 – Law Retriever**: Retrieves relevant items from a small local Italian laws dataset (FAISS index at startup).
-- **Agent 3 – Draft Generator**: Optional `action` to produce a client email, case summary, or contract clause draft.
+### Prerequisites
+- Docker and Docker Compose
+- OpenAI API key
 
-### Automations
-Set `N8N_WEBHOOK_URL` in `.env` to receive webhook events: `document_analyzed`, `query_answered` with payloads.
+### Installation
 
-### Notes
-- If `USE_OPENAI=true` and `OPENAI_API_KEY` is set, the app uses OpenAI for both LLM and embeddings. Otherwise it falls back to a local sentence‑transformers model and a lightweight offline draft generator.
-- Vector stores persist to `backend/app/storage/vectorstore/`.
-- Uploaded files are stored in `backend/app/storage/files/`.
+1. **Clone and setup**
+```bash
+git clone https://github.com/sinahosseinzadeh97/GenAI.git
+cd GenAI/LegalTechAiAssistant
+echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
+```
 
-### Extending
-- Add authentication (JWT) for lawyer/client users.
-- Expand the laws dataset and build a proper ingestion pipeline (per‑source metadata, dates, jurisdictions).
-- Add citations with paragraph numbers and confidence scores.
-- Replace the offline draft with a local LLM via Ollama when OpenAI isn’t used.
+2. **Start the application**
+```bash
+docker-compose up -d
+```
+
+3. **Access the application**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## 📖 Usage
+
+### 1. Upload Documents
+- Navigate to http://localhost:5173
+- Click "Choose File" and select your legal document
+- Click "Upload Document" and wait for processing
+
+### 2. Ask Questions
+- Enter your legal question in English
+- Click "Ask Question" to get AI analysis
+- Review responses with source citations
+
+### Example Questions
+- "What are the confidentiality obligations?"
+- "What data protection regulations apply?"
+- "What is the termination notice period?"
+- "What happens if the agreement is breached?"
+
+## 🛠️ Technology Stack
+
+- **Backend**: FastAPI + OpenAI GPT-4 + PostgreSQL + pgvector
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
+- **Infrastructure**: Docker + Docker Compose
+
+## 📁 API Endpoints
+
+- `POST /documents` — Upload document (PDF/TXT) → `{document_id, workflow_id}`
+- `POST /query` — Ask questions → RAG `answer`, `sources`, `laws`
+- `GET /workflows/{id}` — Retrieve workflow status
+
+## 🔧 Development
+
+```bash
+# Backend
+cd backend && pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Frontend  
+cd frontend && npm install && npm run dev
+```
+
+## 🧪 Testing
+
+Use the included `comprehensive_employment_contract.txt` for testing:
+- Upload the contract file
+- Ask questions about confidentiality, compensation, termination, etc.
+- Verify English responses with proper citations
+
+## 🔐 Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4 | ✅ Yes |
+| `VITE_API_URL` | Frontend API endpoint | No (auto-configured) |
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React Frontend │    │  FastAPI Backend │    │   PostgreSQL    │
+│   (Port 5173)   │◄──►│   (Port 8000)   │◄──►│   (Port 5433)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   OpenAI GPT-4  │
+                       │   API Service   │
+                       └─────────────────┘
+```
+
+## 📁 Project Structure
+
+```
+LegalTechAiAssistant/
+├── backend/
+│   ├── app/
+│   │   ├── core/          # Configuration
+│   │   ├── models/        # Database models
+│   │   ├── routers/       # API endpoints
+│   │   ├── services/      # Business logic
+│   │   └── main.py        # FastAPI app
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── types/         # TypeScript definitions
+│   │   └── App.tsx        # Main application
+│   └── Dockerfile
+├── docker-compose.yml
+├── comprehensive_employment_contract.txt  # Test document
+└── README.md
+```
+
+## 🚀 Production Deployment
+
+```bash
+# Production deployment
+docker-compose up -d --build
+```
+
+### Production Checklist
+- ✅ Set strong database passwords
+- ✅ Configure proper CORS settings  
+- ✅ Set up SSL certificates
+- ✅ Configure backup strategies
+- ✅ Monitor application logs
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+- Create GitHub issues for bugs/features
+- Check API docs at http://localhost:8000/docs
+- Review logs: `docker-compose logs`
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- OpenAI for GPT-4 API
+- FastAPI team for the excellent framework
+- React team for the frontend framework
+- PostgreSQL and pgvector for vector search
+
+---
+
+**Status**: ✅ **Production Ready** — Complete legal document analysis with English AI responses and full citation support.
+
+**Built with ❤️ for the legal technology community**
