@@ -1,0 +1,29 @@
+# ==== Core ====
+python-dotenv
+
+# ==== UI ====
+gradio
+
+# ==== LangChain / LangGraph ====
+langchain>=0.2
+langchain-community>=0.2
+langchain-openai>=0.2
+langchain-experimental>=0.0.62
+langgraph>=0.2
+
+# ==== OpenAI client ====
+openai>=1.0
+
+# ==== Browser automation ====
+playwright>=1.39
+
+# ==== Google Calendar (OAuth + API) ====
+google-api-python-client>=2.120
+google-auth>=2.22
+google-auth-oauthlib>=1.2
+
+# ==== Tools / Utilities ====
+wikipedia>=1.4
+requests>=2.31
+pydantic>=2.5
+typing_extensions>=4.8
