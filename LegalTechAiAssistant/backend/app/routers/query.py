@@ -51,17 +51,26 @@ async def query(req: schemas.QueryRequest, background: BackgroundTasks):
 
     # --- 4) Ask the LLM ---
     system = (
-        "You are an Italian Legal RAG assistant. Use ONLY the provided context. "
-        "Answer concisely in Italian. Cite sources inline as (Titolo). "
-        "If the answer is not in the context, say you don't know."
+        "You are a Legal RAG assistant. You MUST respond in English language ONLY. "
+        "CRITICAL: Never use Italian, Spanish, French, or any other language except English. "
+        "If the context contains text in other languages, translate the key information to English in your response. "
+        "Use ONLY the provided context to answer questions. "
+        "Answer concisely in English. Cite sources inline as (Document Title). "
+        "If the answer is not in the context, say 'I don't know' in English. "
+        "\n"
+        "Example of correct English response: "
+        "'The employee must comply with data protection regulations including GDPR and CCPA (Document Title).'"
     )
-    user = f"Domanda: {req.question}\n\nContesto:\n{context_for_llm}"
+
+    # Force English by adding explicit instruction in the user message
+    english_instruction = "IMPORTANT: You must respond in English language only. Do not use Italian or any other language."
+    user = f"{english_instruction}\n\nQuestion: {req.question}\n\nContext:\n{context_for_llm}\n\nPlease provide your answer in English."
 
     try:
         answer = agents.llm.chat(system, user)
     except Exception as e:
         # اجازه نده کرش کند؛ پیام خطا را هم برگردان
-        answer = f"Non sono riuscito a generare una risposta: {e}"
+        answer = f"I was unable to generate a response: {e}"
 
     # --- 5) Optional draft ---
     draft_text = None
