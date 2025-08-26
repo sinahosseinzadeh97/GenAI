@@ -27,7 +27,7 @@ Sidekick is an agentic AI assistant built with **Langgraph**, **LangChain**, and
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/sidekick-agent.git
+   git clone https://github.com/sinahosseinzadeh97/GenAI/sidekick-agent.git
    cd sidekick-agent
    ```
 
