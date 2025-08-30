@@ -236,4 +236,4 @@ MIT. Feel free to use and modify.
 
 ## 🙌 Contributing
 
-PRs welcome! Please keep PRs focused (single feature/bugfix) and include a brief description and testing notes.
+PRs welcome! Please keep PRs focused (single feature/bugfix) and include a brief description and testing notes..
