@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Uni Assistant – Bilingual Client</title>
+  <style>
+    :root { --bg:#0b0f14; --card:#111826; --ink:#e6eefb; --muted:#a9b1c4; --accent:#3da9fc; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; }
+    html,body { height:100%; margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--ink); }
+    .wrap { max-width:1100px; margin:24px auto; padding:0 16px; }
+    h1 { font-size:22px; margin:0 0 16px; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:16px; }
+    .card { background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:16px; }
+    .card h2 { margin:0 0 12px; font-size:16px; color:#c7d2fe; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #263246; background:#0e1522; color:var(--ink); }
+    textarea { min-height:90px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn { background:var(--accent); color:#001221; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn.secondary { background:#233147; color:#e5edff; }
+    .btn.ok { background:var(--ok); color:#07140a; }
+    .btn.warn { background:var(--warn); color:#231a00; }
+    .btn.err  { background:var(--err); color:#2a0a0a; }
+    .tiny { font-size:12px; color:var(--muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px; }
+    .log { background:#0a101a; border:1px solid #1f2937; border-radius:12px; padding:12px; min-height:120px; white-space:pre-wrap; overflow:auto; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#0e2338; border:1px solid #20344a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Uni Assistant – Bilingual Client <span class="pill tiny" id="status">disconnected</span></h1>
+
+    <div class="grid">
+      <div class="card col-12">
+        <div class="row">
+          <div style="flex:1 1 360px">
+            <label>API Base URL</label>
+            <input id="apiBase" value="http://127.0.0.1:8000" />
+          </div>
+          <div style="flex:1 1 260px">
+            <label>Language mode</label>
+            <select id="langMode">
+              <option value="auto">auto</option>
+              <option value="en">English</option>
+              <option value="fa">Persian</option>
+              <option value="bi" selected>Both (FA → EN)</option>
+            </select>
+          </div>
+          <div style="flex:1 1 260px">
+            <label>Accept-Language header</label>
+            <input id="acceptLang" placeholder="e.g. fa-IR, en-US" value="fa-IR, en-US" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnCreate">Create Session</button>
+          <button class="btn secondary" id="btnState">Get State</button>
+          <div class="tiny mono" id="sidBox">SID: —</div>
+        </div>
+        <div class="tiny" style="margin-top:8px">Tip: if you open this file via <code>file://</code>, CORS can block requests. Serve it: <span class="mono">python3 -m http.server 5500</span> then open <a href="#" onclick="openLocal()">http://127.0.0.1:5500</a>. Also ensure your FastAPI has <span class="mono">CORS_ORIGINS</span> including that origin (e.g. <span class="mono">http://127.0.0.1:5500</span>).</div>
+      </div>
+
+      <div class="card col-6">
+        <h2>Settings</h2>
+        <div class="row">
+          <button class="btn ok" id="btnSaveSettings">Save language mode</button>
+        </div>
+        <div class="tiny" style="margin-top:8px">Saves to <span class="mono">/sessions/{sid}/settings</span>. You can also override per-message using the <span class="mono">lang</span> query.</div>
+      </div>
+
+      <div class="card col-6">
+        <h2>Profile</h2>
+        <label>Name</label>
+        <input id="pfName" placeholder="Sina" />
+        <label>Major</label>
+        <input id="pfMajor" placeholder="Computer Engineering" />
+        <label>Academic Year</label>
+        <input id="pfYear" type="number" placeholder="2" />
+
+        <div class="row">
+          <label><input type="checkbox" id="lsVisual"> Visual</label>
+          <label><input type="checkbox" id="lsAuditory"> Auditory</label>
+          <label><input type="checkbox" id="lsKin"> Kinesthetic</label>
+        </div>
+
+        <label>Courses (one per line, format: <span class="mono">Name,difficulty</span>)</label>
+        <textarea id="pfCourses" placeholder="Algorithms,high&#10;Computer Architecture,medium"></textarea>
+
+        <div class="row" style="margin-top:8px">
+          <button class="btn ok" id="btnSaveProfile">Save profile</button>
+        </div>
+      </div>
+
+      <div class="card col-6">
+        <h2>Add Task</h2>
+        <label>Title</label>
+        <input id="tkTitle" placeholder="HW1 - Algorithms" />
+        <label>Course</label>
+        <input id="tkCourse" placeholder="Algorithms" />
+        <label>Status</label>
+        <select id="tkStatus">
+          <option value="needsAction" selected>needsAction</option>
+          <option value="completed">completed</option>
+        </select>
+        <label>Due (ISO)</label>
+        <input id="tkDue" placeholder="2025-09-03T23:59:00" />
+        <div class="row" style="margin-top:8px">
+          <button class="btn ok" id="btnAddTask">Add task</button>
+        </div>
+      </div>
+
+      <div class="card col-6">
+        <h2>Add Event</h2>
+        <label>Summary</label>
+        <input id="evSummary" placeholder="Algorithms Lecture" />
+        <label>Start (ISO)</label>
+        <input id="evStart" placeholder="2025-09-01T10:00:00" />
+        <label>End (ISO)</label>
+        <input id="evEnd" placeholder="2025-09-01T12:00:00" />
+        <label>Location</label>
+        <input id="evLocation" placeholder="Room 101" />
+        <div class="row" style="margin-top:8px">
+          <button class="btn ok" id="btnAddEvent">Add event</button>
+        </div>
+      </div>
+
+      <div class="card col-12">
+        <h2>Chat</h2>
+        <label>Message</label>
+        <textarea id="chatInput" placeholder="Give me a 3-day study plan; also return the Persian version."></textarea>
+        <div class="row" style="align-items:center; gap:12px">
+          <label style="margin:0"><input type="checkbox" id="useStream" checked> Stream</label>
+          <button class="btn" id="btnChat">Send</button>
+        </div>
+        <div class="log mono" id="chatLog"></div>
+      </div>
+
+      <div class="card col-12">
+        <h2>Console</h2>
+        <div class="log mono" id="console"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const logc = (msg) => { const el = $("console"); el.textContent += `\n${msg}`; el.scrollTop = el.scrollHeight; };
+    const logChat = (msg) => { const el = $("chatLog"); el.textContent += msg; el.scrollTop = el.scrollHeight; };
+
+    let SID = null;
+
+    function currentHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      const al = $("acceptLang").value.trim();
+      if (al) h['Accept-Language'] = al;
+      return h;
+    }
+
+    function api(path) {
+      const base = $("apiBase").value.replace(/\/$/, '');
+      return `${base}${path}`;
+    }
+
+    async function apiFetch(path, opts={}) {
+      const res = await fetch(api(path), { ...opts, headers: { ...currentHeaders(), ...(opts.headers||{}) } });
+      if (!res.ok) {
+        const t = await res.text().catch(()=>"(no body)");
+        throw new Error(`${res.status} ${res.statusText}: ${t}`);
+      }
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) return await res.json();
+      return await res.text();
+    }
+
+    $("btnCreate").onclick = async () => {
+      try {
+        const out = await apiFetch('/sessions', { method:'POST' });
+        SID = out.session_id;
+        $("sidBox").textContent = `SID: ${SID}`;
+        $("status").textContent = 'connected';
+        $("status").style.background = '#123e22';
+        logc('Session created: ' + SID);
+      } catch (e) { logc('ERR creating session: ' + e.message); }
+    };
+
+    $("btnState").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      try { const s = await apiFetch(`/sessions/${SID}`); logc(JSON.stringify(s, null, 2)); }
+      catch (e) { logc('ERR state: ' + e.message); }
+    };
+
+    $("btnSaveSettings").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      const preferred_lang = $("langMode").value;
+      try {
+        const out = await apiFetch(`/sessions/${SID}/settings`, {
+          method:'PATCH', body: JSON.stringify({ preferred_lang })
+        });
+        logc('Settings saved: ' + JSON.stringify(out));
+      } catch (e) { logc('ERR settings: ' + e.message); }
+    };
+
+    $("btnSaveProfile").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      const coursesLines = $("pfCourses").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      const courses = coursesLines.map(l=>{ const [name, difficulty] = l.split(',').map(s=> (s||'').trim()); return { name, difficulty: difficulty||null }; });
+      const profile = {
+        personal_info: { name: $("pfName").value||null, major: $("pfMajor").value||null, academic_year: Number($("pfYear").value||0)||null },
+        learning_preferences: { learning_style: { visual: $("lsVisual").checked, auditory: $("lsAuditory").checked, kinesthetic: $("lsKin").checked } },
+        courses
+      };
+      try {
+        const out = await apiFetch(`/sessions/${SID}/profile`, { method:'PATCH', body: JSON.stringify(profile) });
+        logc('Profile saved');
+      } catch (e) { logc('ERR profile: ' + e.message); }
+    };
+
+    $("btnAddTask").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      const payload = {
+        title: $("tkTitle").value,
+        course: $("tkCourse").value || null,
+        status: $("tkStatus").value,
+        due: $("tkDue").value || null,
+      };
+      try { const out = await apiFetch(`/sessions/${SID}/tasks`, { method:'POST', body: JSON.stringify(payload) }); logc('Task added id=' + out.id); }
+      catch (e) { logc('ERR task: ' + e.message); }
+    };
+
+    $("btnAddEvent").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      const payload = {
+        summary: $("evSummary").value,
+        start: $("evStart").value,
+        end: $("evEnd").value,
+        location: $("evLocation").value || null,
+      };
+      try { const out = await apiFetch(`/sessions/${SID}/events`, { method:'POST', body: JSON.stringify(payload) }); logc('Event added id=' + out.id); }
+      catch (e) { logc('ERR event: ' + e.message); }
+    };
+
+    $("btnChat").onclick = async () => {
+      if (!SID) return alert('Create a session first');
+      const msg = $("chatInput").value.trim();
+      if (!msg) return;
+      $("chatLog").textContent = '';
+      const lang = $("langMode").value; // overrides per message
+
+      if ($("useStream").checked) {
+        try {
+          const res = await fetch(api(`/sessions/${SID}/chat?stream=1&lang=${encodeURIComponent(lang)}`), {
+            method:'POST', headers: currentHeaders(), body: JSON.stringify({ message: msg })
+          });
+          const reader = res.body.getReader();
+          const dec = new TextDecoder();
+          let buf = '';
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream:true });
+            // Parse simple SSE: lines beginning with "data:" and separated by blank lines
+            const parts = buf.split(/\n\n/);
+            buf = parts.pop();
+            for (const pkt of parts) {
+              const line = pkt.split(/\n/).find(l => l.startsWith('data:')) || '';
+              const jsonStr = line.replace(/^data:\s?/, '');
+              try {
+                const obj = JSON.parse(jsonStr);
+                if (obj.chunk) logChat(obj.chunk);
+                if (obj.error) logChat(`\n[error] ${obj.error}\n`);
+              } catch {}
+            }
+          }
+          logChat('\n[stream finished]\n');
+        } catch (e) {
+          logChat(`\n[ERR] ${e.message}\n`);
+        }
+      } else {
+        try {
+          const out = await apiFetch(`/sessions/${SID}/chat?lang=${encodeURIComponent(lang)}`, {
+            method:'POST', body: JSON.stringify({ message: msg })
+          });
+          logChat(out.reply || JSON.stringify(out));
+        } catch (e) { logChat(`[ERR] ${e.message}`); }
+      }
+    };
+
+    function openLocal(){ window.open('http://127.0.0.1:5500', '_blank'); }
+  </script>
+</body>
+</html>
