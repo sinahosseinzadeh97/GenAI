@@ -1,0 +1,4 @@
+name: HomeRenovationPlanner
+module: main
+agent: root_agent
+description: AI Home Renovation Planner with multimodal vision capabilities
