@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    command: uvicorn app:app --host 0.0.0.0 --port 3000
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - EXA_API_KEY=${EXA_API_KEY}
+      - CORS_ORIGINS=http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+  
+  frontend:
+    working_dir: /app
+    image: node:20-alpine
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm i && npm run dev -- --host --port 3001"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
