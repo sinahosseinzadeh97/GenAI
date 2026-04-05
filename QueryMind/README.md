@@ -181,6 +181,58 @@ Who spent the most money?
 
 ---
 
+## RAG Module — Supplier Contract Intelligence
+
+QueryMind now includes a RAG (Retrieval-Augmented Generation) 
+pipeline for semantic search over PDF contracts.
+
+### How it works
+1. Upload any PDF contract via the UI or API
+2. Text is extracted page-by-page using PyMuPDF
+3. Each page is embedded using OpenAI text-embedding-3-small
+4. Embeddings are stored in PostgreSQL with pgvector extension
+5. Semantic search retrieves relevant chunks with source citations
+6. GPT-4o-mini generates answers grounded in the contract content
+
+### New API Endpoints
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/rag/ingest` | Upload and index a PDF contract |
+| POST | `/rag/search` | Semantic search across contracts |
+| POST | `/rag/extract` | Extract specific fields (e.g. expiry date) |
+| POST | `/rag/compare` | Compare clauses across contracts |
+
+### New Tech Stack
+- PyMuPDF — PDF parsing with page-level metadata
+- OpenAI text-embedding-3-small — 1536-dim embeddings
+- pgvector on PostgreSQL — vector similarity search
+- GPT-4o-mini — answer generation with source citations
+- python-multipart — file upload support
+
+### RAG UI
+Switch to **RAG Mode** in the top navigation to:
+- Upload PDF contracts via drag-and-drop
+- Search contracts in natural language
+- See results with filename and page number citations
+
+### New Project Structure
+querymind/
+└── rag/
+├── api/rag_routes.py      # FastAPI RAG endpoints
+├── ingestion/
+│   ├── pdf_parser.py      # PyMuPDF page extraction
+│   └── embedder.py        # OpenAI embeddings
+├── store/vector_store.py  # pgvector storage
+├── retrieval/search.py    # similarity search
+└── generation/llm_client.py # GPT-4o-mini answers
+
+### New Environment Variables
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+---
+
 ## Run Tests
 
 ```bash

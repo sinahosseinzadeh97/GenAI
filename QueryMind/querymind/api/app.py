@@ -11,6 +11,7 @@ from querymind.cache.query_cache import QueryCache
 from querymind.database.schema_watcher import SchemaWatcher
 from querymind.tools.query_tool import execute_nl_query
 from querymind.schemas.models import QueryRequest, QueryError
+from querymind.rag.api.rag_routes import router as rag_router
 
 _memory = ConversationMemory()
 _cache = QueryCache(ttl_seconds=settings.cache_ttl_seconds)
@@ -20,10 +21,12 @@ app = FastAPI(title="QueryMind API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(rag_router)
 
 @app.on_event("startup")
 async def startup():

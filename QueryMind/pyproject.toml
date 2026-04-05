@@ -17,7 +17,12 @@ dependencies = [
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
     "sse-starlette>=2.1.0",
-    "httpx>=0.27.0"
+    "httpx>=0.27.0",
+    "pymupdf>=1.24.0",
+    "boto3>=1.34.0",
+    "pgvector>=0.3.0",
+    "python-multipart>=0.0.9",
+    "openai>=1.0.0"
 ]
 
 [project.optional-dependencies]
