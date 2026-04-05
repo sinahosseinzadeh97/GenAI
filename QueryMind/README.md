@@ -1,4 +1,4 @@
----
+
 
 # 🧠 QueryMind
 ### Natural Language → SQL via MCP
