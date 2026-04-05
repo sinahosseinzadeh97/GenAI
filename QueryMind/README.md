@@ -7,7 +7,7 @@
 > QueryMind translates them to SQL, executes them,
 > and explains the results — all in real time.
 
-![QueryMind UI](docs/screenshot.png)
+![QueryMind UI](docs/screenshot_v2.png)
 
 ---
 
