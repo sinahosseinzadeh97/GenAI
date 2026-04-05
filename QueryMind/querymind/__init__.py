@@ -1,0 +1,3 @@
+"""
+QueryMind root package.
+"""
