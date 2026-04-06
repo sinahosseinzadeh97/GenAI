@@ -1,57 +1,64 @@
-
-
 # 🧠 QueryMind
-### Natural Language → SQL via MCP
+### Natural Language → SQL · RAG · Agent
 
-> Ask questions about your database in plain English.
-> QueryMind translates them to SQL, executes them,
-> and explains the results — all in real time.
+> A production-grade AI platform that lets you query databases,
+> search PDF contracts, and chat with an intelligent agent —
+> all in real time.
 
-![QueryMind UI](docs/screenshot_v2.png)
+![Agent Mode](docs/screenshot_agent.png)
 
 ---
 
 ## What is this?
 
-QueryMind is a production-grade system with three interfaces:
+QueryMind is a production-grade system with three modes and three interfaces:
 
+| Mode | What it does |
+|------|-------------|
+| 🗄️ SQL Mode | Translates natural language to SQL and executes it |
+| 📄 RAG Mode | Ingests PDF contracts and answers questions with page citations |
+| 🤖 Agent Mode | Autonomous agent that picks the right tool and answers with memory |
+
+**Three interfaces:**
 - **MCP Server** — connects Claude Desktop directly to your database
 - **REST API** — FastAPI backend with SSE streaming
 - **Web UI** — React + TypeScript + Tailwind frontend
-
-You ask: *"Which products are low on stock?"*
-QueryMind returns the SQL, the rows, and an insight — instantly.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Two Modes                        │
-├────────────────────┬────────────────────────────────┤
-│   Claude Desktop   │        Browser                 │
-│   (MCP protocol)   │   http://localhost:3001        │
-└────────┬───────────┴──────────────┬─────────────────┘
-         │                          │
-         ▼                          ▼
-┌─────────────────┐      ┌──────────────────┐
-│   MCP Server    │      │  FastAPI + SSE   │
-│  (stdio/stdio)  │      │  :8000           │
-└────────┬────────┘      └────────┬─────────┘
-         │                        │
-         └──────────┬─────────────┘
-                    ▼
-         ┌──────────────────┐
-         │  execute_nl_query│  ← shared core
-         │  + Memory        │
-         │  + Cache         │
-         │  + SchemaWatcher │
-         └────────┬─────────┘
-                  ▼
-         ┌──────────────────┐
-         │ SQLite/PostgreSQL│
-         └──────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         Three Modes                         │
+├──────────────┬──────────────────┬───────────────────────────┤
+│  SQL Mode    │    RAG Mode      │       Agent Mode          │
+│  NL → SQL    │  PDF → Vectors   │  LLM + Tools + Memory     │
+└──────┬───────┴────────┬─────────┴────────────┬──────────────┘
+       │                │                       │
+       ▼                ▼                       ▼
+┌─────────────┐  ┌─────────────┐      ┌────────────────────┐
+│  FastAPI    │  │  RAG API    │      │   Agent API        │
+│  /query     │  │  /rag/*     │      │   /agent/chat      │
+│  /schema    │  │  ingest     │      │   tool_use         │
+│  /history   │  │  search     │      │   memory           │
+└──────┬──────┘  │  extract    │      └────────┬───────────┘
+       │         │  compare    │               │
+       │         └──────┬──────┘               │
+       │                │                      │
+       └────────────────┼──────────────────────┘
+                        ▼
+          ┌─────────────────────────┐
+          │   PostgreSQL + pgvector │
+          │   SQLite (default)      │
+          └─────────────────────────┘
+                        │
+                        ▼
+          ┌─────────────────────────┐
+          │   OpenAI API            │
+          │   text-embedding-3-small│
+          │   gpt-4o-mini           │
+          └─────────────────────────┘
 ```
 
 ---
@@ -60,13 +67,16 @@ QueryMind returns the SQL, the rows, and an insight — instantly.
 
 | Feature | Description |
 |---|---|
-| 🔤 Natural Language | Ask in plain English |
+| 🔤 Natural Language → SQL | Ask in plain English |
 | ⚡ SSE Streaming | Results stream in real time |
 | 🧠 Conversation Memory | Remembers previous questions |
 | 💾 Query Cache | Same question → instant response |
 | 💡 AI Insights | Explains what the data means |
 | 🔍 Schema Watcher | Detects DB changes automatically |
-| 🐘 PostgreSQL | Drop-in alternative to SQLite |
+| 📄 PDF Ingestion | Upload contracts, embed by page |
+| 🔎 Semantic Search | pgvector similarity search with citations |
+| 🤖 AI Agent | Autonomous tool selection + multi-turn memory |
+| 🐘 PostgreSQL + pgvector | Vector storage for RAG |
 | 🐳 Docker | One command to run everything |
 | 🔌 MCP | Works natively with Claude Desktop |
 
@@ -77,20 +87,22 @@ QueryMind returns the SQL, the rows, and an insight — instantly.
 **Backend**
 - Python 3.12+
 - FastAPI + uvicorn
-- Pydantic v2 (strict typing everywhere)
+- Pydantic v2
 - MCP (Model Context Protocol)
 - aiosqlite / asyncpg
-- httpx (Anthropic API calls)
+- PyMuPDF (PDF parsing)
+- pgvector (vector similarity)
+- OpenAI SDK (embeddings + agent)
 
 **Frontend**
 - React 18 + TypeScript
 - Vite + Tailwind CSS
-- SSE streaming (no WebSocket needed)
+- SSE streaming
 
 **Infrastructure**
 - Docker + docker-compose
-- PostgreSQL 16 (optional)
-- pytest + pytest-asyncio (37 tests)
+- PostgreSQL 16 + pgvector
+- pytest (37 tests)
 
 ---
 
@@ -99,17 +111,20 @@ QueryMind returns the SQL, the rows, and an insight — instantly.
 ### Prerequisites
 - Docker + Docker Compose
 - Anthropic API key
+- OpenAI API key (for RAG + Agent)
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/sinahosseinzadeh97/GenAI
+git clone https://github.com/sinahosseinzadeh97/GenAI.git
 cd GenAI/QueryMind
 ```
 
 ### 2. Configure environment
 ```bash
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Edit .env and add your keys:
+# ANTHROPIC_API_KEY=...
+# OPENAI_API_KEY=...
 ```
 
 ### 3. Run everything
@@ -121,10 +136,125 @@ Open **http://localhost:3001**
 
 ---
 
+## Three Modes
+
+### 🗄️ SQL Mode
+Ask natural language questions about your database.
+```
+How many users do we have?
+Which products are low on stock?
+What's the total revenue from delivered orders?
+```
+
+### 📄 RAG Mode
+![RAG Mode](docs/screenshot_rag.png)
+
+Upload PDF contracts and search them semantically.
+- Upload via drag-and-drop UI or `POST /rag/ingest`
+- Search returns results with **filename + page number** citations
+- Supports bilingual documents (English + Italian)
+
+### 🤖 Agent Mode
+![Agent Mode](docs/screenshot_agent.png)
+
+Chat with an autonomous agent that:
+1. Understands your question in natural language
+2. Autonomously picks the right tool:
+   - `search_contracts` — semantic search across all contracts
+   - `extract_field` — extract specific fields (expiry date, value, parties)
+   - `compare_contracts` — compare clauses across multiple contracts
+3. Calls the RAG pipeline internally as tools
+4. Returns a grounded answer with source citations
+5. Remembers the full conversation (multi-turn memory per session)
+
+**Example:**
+
+Request:
+```json
+{
+  "message": "When does the contract expire?",
+  "session_id": "user_123"
+}
+```
+
+Response:
+```json
+{
+  "answer": "The contract expires on December 31, 2025.",
+  "tools_used": ["search_contracts"],
+  "sources": [
+    {"filename": "test_contract.pdf", "page_number": 1}
+  ]
+}
+```
+
+---
+
+## API Endpoints
+
+### Core
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/query` | Stream NL query as SSE |
+| GET | `/schema` | Get database schema |
+| GET | `/history` | Get conversation history |
+| DELETE | `/history` | Clear conversation |
+| GET | `/cache/stats` | Cache statistics |
+| DELETE | `/cache` | Invalidate cache |
+| GET | `/health` | Health check |
+
+### RAG
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/rag/ingest` | Upload and index a PDF |
+| POST | `/rag/search` | Semantic search across contracts |
+| POST | `/rag/extract` | Extract specific fields |
+| POST | `/rag/compare` | Compare clauses across contracts |
+
+### Agent
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/agent/chat` | Chat with the contract agent |
+
+---
+
+## Project Structure
+
+```
+QueryMind/
+├── querymind/
+│   ├── api/              # FastAPI app + SSE endpoints
+│   ├── agent/            # AI Agent with tool use + memory
+│   │   ├── tools.py      # OpenAI function-calling schemas
+│   │   ├── memory.py     # Session-based conversation memory
+│   │   ├── orchestrator.py # Agent loop + tool dispatch
+│   │   └── api/          # POST /agent/chat
+│   ├── rag/              # RAG pipeline
+│   │   ├── ingestion/    # PDF parser + embedder
+│   │   ├── store/        # pgvector storage
+│   │   ├── retrieval/    # similarity search
+│   │   ├── generation/   # LLM answer generation
+│   │   └── api/          # RAG endpoints
+│   ├── cache/            # Query result cache
+│   ├── database/         # SQLite + PostgreSQL engines
+│   ├── memory/           # Conversation memory
+│   ├── prompts/          # SQL generation prompts
+│   ├── schemas/          # Pydantic models
+│   ├── tools/            # MCP tools
+│   └── server.py         # MCP server entry point
+├── frontend/             # React + TypeScript + Tailwind
+├── docs/                 # Screenshots
+├── data/                 # SQLite database
+├── Dockerfile
+├── docker-compose.yml
+└── pyproject.toml
+```
+
+---
+
 ## Connect to Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
 ```json
 {
   "mcpServers": {
@@ -139,96 +269,6 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
     }
   }
 }
-```
-
-> The `-i` flag is required for stdio MCP protocol.
-
----
-
-## Import Your Own Data
-
-```bash
-# Import any CSV file
-docker compose exec api python -m querymind import-csv \
-  /app/data/yourfile.csv table_name
-```
-
----
-
-## Example Queries
-
-```
-How many users do we have?
-Which products are low on stock?
-What's the total revenue from delivered orders?
-Show me all pending orders with customer names
-Who spent the most money?
-```
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/query` | Stream NL query as SSE |
-| GET | `/schema` | Get database schema |
-| GET | `/history` | Get conversation history |
-| DELETE | `/history` | Clear conversation |
-| GET | `/cache/stats` | Cache statistics |
-| DELETE | `/cache` | Invalidate cache |
-| GET | `/health` | Health check |
-
----
-
-## RAG Module — Supplier Contract Intelligence
-
-QueryMind now includes a RAG (Retrieval-Augmented Generation) 
-pipeline for semantic search over PDF contracts.
-
-### How it works
-1. Upload any PDF contract via the UI or API
-2. Text is extracted page-by-page using PyMuPDF
-3. Each page is embedded using OpenAI text-embedding-3-small
-4. Embeddings are stored in PostgreSQL with pgvector extension
-5. Semantic search retrieves relevant chunks with source citations
-6. GPT-4o-mini generates answers grounded in the contract content
-
-### New API Endpoints
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/rag/ingest` | Upload and index a PDF contract |
-| POST | `/rag/search` | Semantic search across contracts |
-| POST | `/rag/extract` | Extract specific fields (e.g. expiry date) |
-| POST | `/rag/compare` | Compare clauses across contracts |
-
-### New Tech Stack
-- PyMuPDF — PDF parsing with page-level metadata
-- OpenAI text-embedding-3-small — 1536-dim embeddings
-- pgvector on PostgreSQL — vector similarity search
-- GPT-4o-mini — answer generation with source citations
-- python-multipart — file upload support
-
-### RAG UI
-Switch to **RAG Mode** in the top navigation to:
-- Upload PDF contracts via drag-and-drop
-- Search contracts in natural language
-- See results with filename and page number citations
-
-### New Project Structure
-querymind/
-└── rag/
-├── api/rag_routes.py      # FastAPI RAG endpoints
-├── ingestion/
-│   ├── pdf_parser.py      # PyMuPDF page extraction
-│   └── embedder.py        # OpenAI embeddings
-├── store/vector_store.py  # pgvector storage
-├── retrieval/search.py    # similarity search
-└── generation/llm_client.py # GPT-4o-mini answers
-
-### New Environment Variables
-```env
-OPENAI_API_KEY=your_openai_api_key
 ```
 
 ---
@@ -246,50 +286,23 @@ pytest -v
 
 ---
 
-## Project Structure
+## Environment Variables
 
-```
-QueryMind/
-├── querymind/
-│   ├── api/          # FastAPI app + SSE endpoints
-│   ├── cache/        # Query result cache (TTL-based)
-│   ├── database/     # SQLite + PostgreSQL engines + router
-│   ├── memory/       # Conversation memory (multi-turn)
-│   ├── prompts/      # SQL generation + insight prompts
-│   ├── schemas/      # All Pydantic models
-│   ├── tools/        # MCP tools (query, schema, import)
-│   └── server.py     # MCP server entry point
-├── frontend/         # React + TypeScript + Tailwind
-├── data/             # SQLite database (volume mounted)
-├── Dockerfile
-├── docker-compose.yml
-└── pyproject.toml
+```env
+# Core
+DB_PATH=querymind.db
+DATABASE_TYPE=sqlite
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# PostgreSQL (optional)
+POSTGRES_DSN=postgresql://querymind:querymind_pass@postgres:5432/querymind
+
+# RAG + Agent (OpenAI)
+OPENAI_API_KEY=your_openai_api_key
+BEDROCK_EMBEDDING_MODEL=amazon.titan-embed-text-v1
+BEDROCK_LLM_MODEL=anthropic.claude-haiku-4-5-20251001
 ```
 
 ---
 
-## PostgreSQL Setup (Optional)
-
-```bash
-# Start postgres
-docker compose up postgres -d
-
-# Update .env
-DATABASE_TYPE=postgresql
-POSTGRES_DSN=postgresql://querymind:querymind_pass@localhost:5432/querymind
-
-# Run
-docker compose up
-```
-
----
-
-## License
-
-MIT
-
----
-
-*Built with Python 3.12 · Pydantic v2 · MCP · FastAPI · React*
-
----
+*Built with Python 3.12 · Pydantic v2 · MCP · FastAPI · pgvector · React*
