@@ -1,8 +1,12 @@
-data/querymind.db
-.venv
-__pycache__
+smart-chatbot/.env
+smart-chatbot/.env
+/PersonalCo-Worker/.env
+
+# ===== common =====
+.DS_Store
+__pycache__/
 *.pyc
-frontend/node_modules/
-**/__pycache__/
-**/*.pyc
+.venv/
 .env
+.env.*
+*.db

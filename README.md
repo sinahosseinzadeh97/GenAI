@@ -1,11 +1,7 @@
-![Python](https://img.shields.io/badge/python-3.12+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-37%20passing-brightgreen)
-
 # 🧠 QueryMind
 ### Natural Language → SQL · RAG · Agent
 
-> A production-oriented AI platform that lets you query databases,
+> A production-grade AI platform that lets you query databases,
 > search PDF contracts, and chat with an intelligent agent —
 > all in real time.
 
@@ -15,7 +11,7 @@
 
 ## What is this?
 
-QueryMind is a production-oriented system with three modes and three interfaces:
+QueryMind is a production-grade system with three modes and three interfaces:
 
 | Mode | What it does |
 |------|-------------|
@@ -137,21 +133,6 @@ docker compose up
 ```
 
 Open **http://localhost:3001**
-
----
-
-## Current Limitations
-- Single-tenant: no user accounts or login system yet
-- OpenAI API key required for RAG Mode and Agent Mode
-- Designed for databases up to ~50,000 rows
-- Agent memory resets on container restart (Redis persistence coming in v0.2)
-- Tested on: macOS 14, Ubuntu 22.04
-
-## Tech Decisions
-- **pypdf over PyMuPDF**: pypdf is MIT-licensed, safe for commercial use
-- **SQLite default**: zero-config for local development; swap to postgres for production
-- **SSE over WebSockets**: simpler infrastructure, works behind standard reverse proxies
-- **Claude Haiku for SQL**: fast and cheap for structured generation tasks
 
 ---
 
