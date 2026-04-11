@@ -1,0 +1,8 @@
+data/querymind.db
+.venv
+__pycache__
+*.pyc
+frontend/node_modules/
+**/__pycache__/
+**/*.pyc
+.env
