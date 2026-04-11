@@ -148,6 +148,13 @@ async def execute_nl_query(
              )
         
         # 6. Execute SQL
+        import time
+        from sqlalchemy.orm import Session
+        from querymind.database.history import engine as history_engine
+        from querymind.database.history_repo import save_query
+        
+        start_time = time.time()
+        
         if settings.database_type == "postgresql":
             engine = ReadOnlyEngine()
             try:
@@ -158,6 +165,19 @@ async def execute_nl_query(
                 await engine.close()
         else:
             result_data = await execute_query(sql)
+            
+        elapsed = int((time.time() - start_time) * 1000)
+        
+        with Session(history_engine) as db_session:
+            await save_query(
+                db=db_session,
+                session_id="default",
+                user_question=request.nl_query,
+                sql_generated=sql,
+                result_data=result_data.rows,
+                execution_time_ms=elapsed,
+                status="success"
+            )
         
         # 7. Build Typed QueryResult
         schema_map = await fetch_table_schema_info()
@@ -215,6 +235,29 @@ async def execute_nl_query(
         return result
         
     except Exception as e:
+        import time
+        from sqlalchemy.orm import Session
+        from querymind.database.history import engine as history_engine
+        from querymind.database.history_repo import save_query
+        
+        elapsed = int((time.time() - start_time) * 1000) if 'start_time' in locals() else 0
+        sql_to_save = sql if 'sql' in locals() else None
+        
+        try:
+            with Session(history_engine) as db_session:
+                await save_query(
+                    db=db_session,
+                    session_id="default",
+                    user_question=request.nl_query,
+                    sql_generated=sql_to_save,
+                    result_data=None,
+                    execution_time_ms=elapsed,
+                    status="error",
+                    error_message=str(e)
+                )
+        except Exception as db_err:
+            print(f"Failed to save query history: {db_err}")
+
         if memory:
             await memory.add_turn("user", request.nl_query, sql=None)
         return QueryError(

@@ -7,7 +7,11 @@ export const SchemaPanel: React.FC = () => {
   useEffect(() => {
     const fetchSchema = async () => {
       try {
-        const res = await fetch("/schema");
+        const res = await fetch("/schema", {
+          headers: {
+            "X-API-Key": import.meta.env.VITE_API_KEY || ""
+          }
+        });
         const data = await res.json();
         setSchema(data.schema);
       } catch (e) {

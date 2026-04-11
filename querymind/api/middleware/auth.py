@@ -1,34 +1,20 @@
 import os
-import logging
-from fastapi import Request
-from fastapi.responses import JSONResponse
+import secrets
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 
-logger = logging.getLogger(__name__)
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-EXCLUDED_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
-
-
-async def api_key_middleware(request: Request, call_next):
-    if request.url.path in EXCLUDED_PATHS:
-        return await call_next(request)
-
-    expected_key = os.getenv("API_SECRET_KEY")
-
+def get_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
+    expected_key = os.getenv("QUERYMIND_API_KEY")
+    
     if not expected_key:
-        # Dev mode: no key configured, allow all requests
-        logger.debug("API_SECRET_KEY not set — running in open dev mode")
-        return await call_next(request)
-
-    api_key = request.headers.get("X-API-Key")
-
-    if api_key != expected_key:
-        logger.warning(f"Unauthorized request to {request.url.path} from {request.client.host}")
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Unauthorized",
-                "message": "Missing or invalid API key. Add X-API-Key header."
-            }
+        raise RuntimeError("QUERYMIND_API_KEY environment variable not set")
+    
+    if not api_key or not secrets.compare_digest(api_key, expected_key):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+            headers={"WWW-Authenticate": "X-API-Key"},
         )
-
-    return await call_next(request)
+    return api_key

@@ -4,9 +4,9 @@ Orchestrator for the Contract Agent.
 import os
 import json
 import logging
-from openai import OpenAI
+import anthropic
 
-from querymind.agent.redis_memory import RedisSessionMemory
+from querymind.agent.memory import SessionMemory
 from querymind.agent.tools import TOOLS
 from querymind.rag.retrieval.search import search_chunks
 from querymind.rag.generation.llm_client import generate_answer
@@ -14,17 +14,16 @@ from querymind.rag.generation.llm_client import generate_answer
 logger = logging.getLogger(__name__)
 
 # Global memory instance
-_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-_memory = RedisSessionMemory(redis_url=_redis_url)
+_memory = SessionMemory()
 
 class ContractAgent:
     """Agent orchestrator for handling RAG queries with tools."""
     
     def __init__(self):
         """Initializes the ContractAgent."""
-        api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=api_key)
-        self.model = "gpt-4o-mini"
+        self.client = anthropic.Anthropic()
+        self.model = "claude-opus-4-5"
+        self.system_prompt = "You are a helpful data analyst agent. You analyze contracts and answer queries accurately."
         
     async def run(self, session_id: str, user_message: str) -> dict:
         """
@@ -38,7 +37,6 @@ class ContractAgent:
             A dictionary containing the answer, tools used, and sources.
         """
         # 1. Load history from SessionMemory
-        # Load history creates a copy or we can just get the list
         history = list(_memory.get_history(session_id))
         
         # 2. Append user message to history
@@ -48,82 +46,91 @@ class ContractAgent:
         tools_used = []
         sources = []
         
-        # 3. Call OpenAI chat completions with tools
-        response = self.client.chat.completions.create(
+        # 3. Call Anthropic with tools
+        response = self.client.messages.create(
             model=self.model,
+            max_tokens=2048,
+            system=self.system_prompt,
             messages=messages,
             tools=TOOLS
         )
         
-        message = response.choices[0].message
-        
         # 4. If LLM chooses a tool
-        if message.tool_calls:
+        if response.stop_reason == "tool_use":
             # c. Append assistant message with tool calls to memory
             _memory.add_message(
                 session_id, 
-                role=message.role, 
-                content=message.content, 
-                tool_calls=[t.model_dump() for t in message.tool_calls]
+                role=response.role, 
+                content=[block.model_dump() for block in response.content]
             )
             
-            for tool_call in message.tool_calls:
-                tools_used.append(tool_call.function.name)
-                args = json.loads(tool_call.function.arguments)
-                tool_result_str = ""
-                
-                try:
-                    # b. Call the matching function
-                    if tool_call.function.name == "search_contracts":
-                        results = await search_chunks(args["query"], args.get("top_k", 5))
-                        context = [f"[Source: {r['filename']} (Page {r['page_number']})]\n{r['content']}" for r in results]
-                        tool_result_str = "\n\n".join(context)
-                        for r in results:
-                            sources.append({"filename": r["filename"], "page_number": r["page_number"]})
-                            
-                    elif tool_call.function.name == "extract_field":
-                        results = await search_chunks(args["query"] + f" {args['field']}", 5)
-                        answer = generate_answer(f"Extract the {args['field']} based on the query: {args['query']}", results)
-                        tool_result_str = answer
-                        for r in results:
-                            sources.append({"filename": r["filename"], "page_number": r["page_number"]})
-                            
-                    elif tool_call.function.name == "compare_contracts":
-                        results = await search_chunks(args["query"], 10)
-                        if "filenames" in args and args["filenames"]:
-                            results = [r for r in results if r["filename"] in args["filenames"]]
-                        answer = generate_answer(args["query"], results)
-                        tool_result_str = answer
-                        for r in results:
-                            sources.append({"filename": r["filename"], "page_number": r["page_number"]})
-                    else:
-                        tool_result_str = f"Unknown tool: {tool_call.function.name}"
-                except Exception as e:
-                    logger.error(f"Error executing tool {tool_call.function.name}: {e}")
-                    tool_result_str = f"Error: {e}"
-                
-                # c. Append tool result to messages
-                _memory.add_message(
-                    session_id, 
-                    role="tool", 
-                    content=tool_result_str, 
-                    tool_call_id=tool_call.id,
-                    name=tool_call.function.name
-                )
+            tool_results = []
             
-            # d. Call OpenAI again to get final answer
+            for block in response.content:
+                if block.type == "tool_use":
+                    tools_used.append(block.name)
+                    args = block.input
+                    tool_result_str = ""
+                    
+                    try:
+                        # b. Call the matching function
+                        if block.name == "search_contracts":
+                            results = await search_chunks(args["query"], args.get("top_k", 5))
+                            context = [f"[Source: {r['filename']} (Page {r['page_number']})]\n{r['content']}" for r in results]
+                            tool_result_str = "\n\n".join(context)
+                            for r in results:
+                                sources.append({"filename": r["filename"], "page_number": r["page_number"]})
+                                
+                        elif block.name == "extract_field":
+                            results = await search_chunks(args["query"] + f" {args['field']}", 5)
+                            answer = generate_answer(f"Extract the {args['field']} based on the query: {args['query']}", results)
+                            tool_result_str = answer
+                            for r in results:
+                                sources.append({"filename": r["filename"], "page_number": r["page_number"]})
+                                
+                        elif block.name == "compare_contracts":
+                            results = await search_chunks(args["query"], 10)
+                            if "filenames" in args and args.get("filenames"):
+                                results = [r for r in results if r["filename"] in args["filenames"]]
+                            answer = generate_answer(args["query"], results)
+                            tool_result_str = answer
+                            for r in results:
+                                sources.append({"filename": r["filename"], "page_number": r["page_number"]})
+                        else:
+                            tool_result_str = f"Unknown tool: {block.name}"
+                    except Exception as e:
+                        logger.error(f"Error executing tool {block.name}: {e}")
+                        tool_result_str = f"Error: {e}"
+                    
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_str
+                    })
+            
+            # c. Append tool results to messages
+            _memory.add_message(
+                session_id, 
+                role="user", 
+                content=tool_results
+            )
+            
+            # d. Call Anthropic again to get final answer
             messages = list(_memory.get_history(session_id))
-            final_response = self.client.chat.completions.create(
+            final_response = self.client.messages.create(
                 model=self.model,
-                messages=messages
+                max_tokens=2048,
+                system=self.system_prompt,
+                messages=messages,
+                tools=TOOLS
             )
-            final_answer = final_response.choices[0].message.content
+            final_answer = next((block.text for block in final_response.content if block.type == 'text'), "")
             # 6. Append assistant response to history
             _memory.add_message(session_id, "assistant", final_answer)
             ans = final_answer
         else:
             # 5. If LLM answers directly: use that answer
-            ans = message.content
+            ans = next((block.text for block in response.content if block.type == 'text'), "")
             # 6. Append assistant response to history
             _memory.add_message(session_id, "assistant", ans)
             

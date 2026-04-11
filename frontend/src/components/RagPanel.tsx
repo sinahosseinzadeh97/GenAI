@@ -19,6 +19,9 @@ export function RagPanel() {
     try {
       const res = await fetch("http://localhost:8000/rag/ingest", {
         method: "POST",
+        headers: {
+          "X-API-Key": import.meta.env.VITE_API_KEY || ""
+        },
         body: formData,
       });
       const data = await res.json();
@@ -36,7 +39,10 @@ export function RagPanel() {
     try {
       const res = await fetch("http://localhost:8000/rag/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-API-Key": import.meta.env.VITE_API_KEY || ""
+        },
         body: JSON.stringify({ query, top_k: 5 }),
       });
       const data = await res.json();

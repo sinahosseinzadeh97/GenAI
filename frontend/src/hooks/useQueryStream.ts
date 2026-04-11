@@ -17,7 +17,10 @@ export function useQueryStream() {
 
     const response = await fetch("/query", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": import.meta.env.VITE_API_KEY || ""
+      },
       body: JSON.stringify({ nl_query, max_rows })
     });
 

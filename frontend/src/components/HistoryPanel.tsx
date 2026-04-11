@@ -17,7 +17,11 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ refreshTrigger }) =>
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch("/history");
+      const res = await fetch("/history", {
+        headers: {
+          "X-API-Key": import.meta.env.VITE_API_KEY || ""
+        }
+      });
       const data = await res.json();
       setTurns(data.turns);
     } catch (e) {
@@ -31,7 +35,12 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ refreshTrigger }) =>
 
   const clearHistory = async () => {
     try {
-      await fetch("/history", { method: "DELETE" });
+      await fetch("/history", {
+        method: "DELETE",
+        headers: {
+          "X-API-Key": import.meta.env.VITE_API_KEY || ""
+        }
+      });
       setTurns([]);
     } catch (e) {
       console.error("Failed to clear history", e);

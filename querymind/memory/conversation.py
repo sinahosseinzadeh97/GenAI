@@ -41,3 +41,22 @@ class ConversationMemory:
     async def clear(self) -> None:
         async with self._lock:
             self._turns.clear()
+
+    async def load_from_db(self, session_id: str, db, last_n: int = 10):
+        # Prevent circular imports if used
+        from querymind.database.history_repo import get_history
+        recent = await get_history(session_id=session_id, limit=last_n)
+        for item in reversed(recent):
+            await self.add_turn(
+                role="user",
+                content=item["user_question"],
+                sql=item["sql_generated"]
+            )
+            # The agent typically adds an assistant turn. 
+            # We add a matching assistant turn based on the result count so history flows linearly.
+            if item.get("result_row_count") is not None:
+                await self.add_turn(
+                    role="assistant",
+                    content=f"{item['result_row_count']} rows returned",
+                    sql=None
+                )

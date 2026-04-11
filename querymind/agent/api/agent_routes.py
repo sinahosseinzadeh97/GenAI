@@ -1,15 +1,12 @@
 """
 Agent API routes.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from querymind.agent.orchestrator import ContractAgent
-import time
-from querymind.logging_config import StructuredLogger
-
-logger = StructuredLogger("querymind.agent")
-from querymind.api.middleware.rate_limit import limiter, AGENT_LIMIT
+from querymind.api.middleware.auth import get_api_key
+from querymind.api.middleware.rate_limit import rate_limit_dependency
 
 router = APIRouter(prefix="/agent", tags=["Agent"])
 
@@ -25,20 +22,15 @@ class AgentChatResponse(BaseModel):
     sources: list[dict]
 
 @router.post("/chat", response_model=AgentChatResponse)
-@limiter.limit(AGENT_LIMIT)
-async def chat_endpoint(request: Request, req: AgentChatRequest):
+async def chat_endpoint(req: AgentChatRequest, api_key: str = Depends(get_api_key), _: None = Depends(rate_limit_dependency)):
     """Endpoint for agent chat."""
-    start_time = time.time()
     try:
         agent = ContractAgent()
         result = await agent.run(req.session_id, req.message)
-        latency_ms = (time.time() - start_time) * 1000
-        logger.log_agent(session_id=req.session_id, tools_used=result["tools_used"], latency_ms=latency_ms)
         return AgentChatResponse(
             answer=result["answer"],
             tools_used=result["tools_used"],
             sources=result["sources"]
         )
     except Exception as e:
-        logger.log_error("agent_chat_error", str(e))
         raise HTTPException(status_code=500, detail=str(e))

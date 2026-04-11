@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Export Buttons CSS */
+.export-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-btn--csv {
+  background-color: #22c55e;
+  color: white;
+}
+
+.export-btn--json {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.export-error {
+  color: #ef4444;
+  font-size: 13px;
+  align-self: center;
+}

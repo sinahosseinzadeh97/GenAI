@@ -33,7 +33,10 @@ export function AgentPanel() {
     try {
       const res = await fetch("http://localhost:8000/agent/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-API-Key": import.meta.env.VITE_API_KEY || ""
+        },
         body: JSON.stringify({ message: userMsg.content, session_id: sessionId.current }),
       });
       const data = await res.json();

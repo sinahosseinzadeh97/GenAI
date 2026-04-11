@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request, Depends
+from querymind.api.middleware.auth import get_api_key
 from pydantic import BaseModel
 from typing import List
 
@@ -12,7 +13,7 @@ import asyncio
 from querymind.logging_config import StructuredLogger
 
 logger = StructuredLogger("querymind.rag")
-from querymind.api.middleware.rate_limit import limiter, RAG_LIMIT, INGEST_LIMIT
+from querymind.api.middleware.rate_limit import rate_limit_dependency
 
 router = APIRouter(prefix="/rag", tags=["RAG"])
 
@@ -29,8 +30,7 @@ class CompareRequest(BaseModel):
     filenames: List[str]
 
 @router.post("/ingest")
-@limiter.limit(INGEST_LIMIT)
-async def ingest_document(request: Request, file: UploadFile = File(...)):
+async def ingest_document(request: Request, file: UploadFile = File(...), api_key: str = Depends(get_api_key), _: None = Depends(rate_limit_dependency)):
     if not file.filename:
         return {"error": "Filename missing."}
     
@@ -63,8 +63,7 @@ async def ingest_document(request: Request, file: UploadFile = File(...)):
     return {"message": f"Successfully ingested {len(parsed_chunks)} chunks from {file.filename}"}
 
 @router.post("/search")
-@limiter.limit(RAG_LIMIT)
-async def search_documents(request: Request, req: SearchRequest):
+async def search_documents(request: Request, req: SearchRequest, api_key: str = Depends(get_api_key)):
     start_time = time.time()
     results = await search_chunks(req.query, req.top_k)
     latency_ms = (time.time() - start_time) * 1000
@@ -72,14 +71,14 @@ async def search_documents(request: Request, req: SearchRequest):
     return {"results": results}
 
 @router.post("/extract")
-async def extract_field(req: ExtractRequest):
+async def extract_field(req: ExtractRequest, api_key: str = Depends(get_api_key)):
     results = await search_chunks(req.query + f" {req.field}", top_k=5)
     answer = generate_answer(f"Extract the {req.field} based on the query: {req.query}", results)
     
     return {"extracted": answer, "sources": [{"filename": r["filename"], "page": r["page_number"]} for r in results]}
 
 @router.post("/compare")
-async def compare_documents(req: CompareRequest):
+async def compare_documents(req: CompareRequest, api_key: str = Depends(get_api_key)):
     results = await search_chunks(req.query, top_k=10)
     
     # filter by filenames if specified

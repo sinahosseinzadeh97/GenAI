@@ -1,5 +1,6 @@
 import React from "react";
 import { QueryResult } from "../types";
+import { ExportButtons } from "./ExportButtons";
 
 interface ResultTableProps {
   result: QueryResult;
@@ -51,6 +52,7 @@ export const ResultTable: React.FC<ResultTableProps> = ({ result }) => {
           </tbody>
         </table>
       </div>
+      <ExportButtons />
     </div>
   );
 };

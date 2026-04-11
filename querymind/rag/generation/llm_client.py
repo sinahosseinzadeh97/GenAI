@@ -1,8 +1,8 @@
 import os
-from openai import OpenAI
+import anthropic
 
 def generate_answer(query: str, contexts: list[dict]) -> str:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = anthropic.Anthropic()
     
     context_text = ""
     for c in contexts:
@@ -19,9 +19,9 @@ Context:
 Question:
 {query}"""
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1024
+    response = client.messages.create(
+        model="claude-opus-4-5",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+    return response.content[0].text

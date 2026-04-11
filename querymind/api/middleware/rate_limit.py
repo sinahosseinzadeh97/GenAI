@@ -1,25 +1,45 @@
-import os
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from fastapi import Request
-from fastapi.responses import JSONResponse
+import time
+from collections import defaultdict
+from fastapi import HTTPException, Request, status
 
-# Limits are configurable via environment variables
-QUERY_LIMIT = os.getenv("RATE_LIMIT_QUERY", "30/minute")
-RAG_LIMIT = os.getenv("RATE_LIMIT_RAG", "20/minute")
-AGENT_LIMIT = os.getenv("RATE_LIMIT_AGENT", "20/minute")
-INGEST_LIMIT = os.getenv("RATE_LIMIT_INGEST", "5/minute")
+class RateLimiter:
+    def __init__(self, max_requests: int = 20, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self._requests: dict[str, list[float]] = defaultdict(list)
 
-limiter = Limiter(key_func=get_remote_address)
+    def is_allowed(self, client_id: str) -> bool:
+        now = time.time()
+        window_start = now - self.window_seconds
+        
+        # Clean old requests
+        self._requests[client_id] = [
+            ts for ts in self._requests[client_id] if ts > window_start
+        ]
+        
+        if len(self._requests[client_id]) >= self.max_requests:
+            return False
+        
+        self._requests[client_id].append(now)
+        return True
+
+    def get_remaining(self, client_id: str) -> int:
+        now = time.time()
+        window_start = now - self.window_seconds
+        recent = [ts for ts in self._requests[client_id] if ts > window_start]
+        return max(0, self.max_requests - len(recent))
 
 
-async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
-        status_code=429,
-        content={
-            "error": "Rate limit exceeded",
-            "message": str(exc.detail),
-            "retry_after": "60 seconds"
-        }
-    )
+# Global instance
+limiter = RateLimiter(max_requests=20, window_seconds=60)
+
+
+async def rate_limit_dependency(request: Request):
+    client_ip = request.client.host
+    
+    if not limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded. Max 20 requests per minute.",
+            headers={"Retry-After": "60"},
+        )
