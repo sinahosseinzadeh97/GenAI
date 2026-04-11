@@ -9,7 +9,7 @@
 
 ---
 
-## What is this?
+## What is this
 
 QueryMind is a production-grade system with three modes and three interfaces:
 
