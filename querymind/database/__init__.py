@@ -1,3 +1,0 @@
-"""
-Database layer for QueryMind.
-"""
