@@ -1,0 +1,150 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# RAGForge Enterprise – LexReview Stack
+#
+# Port audit (run before every deploy):
+#   lsof -i :6333 -i :6334 -i :8000
+#
+# Usage:
+#   docker compose up -d --build                # qdrant + api
+#   docker compose --profile finetune up        # include finetune (CPU/MPS)
+#   docker compose down -v                      # nuke volumes too
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+
+  # ── Qdrant Vector Database ──────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lexreview-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_REST_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__LOG_LEVEL: "${QDRANT_LOG_LEVEL:-INFO}"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__STORAGE__STORAGE_PATH: "/qdrant/storage"
+    healthcheck:
+      # qdrant image has no curl/wget/nc — use bash /dev/tcp (zero-dependency TCP probe)
+      # passes as soon as port 6333 accepts connections
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    logging: *default-logging
+    networks:
+      - lexreview-net
+
+  # ── FastAPI / LexReview API ─────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: "3.11"
+    # FIX 1: combining image + build would trigger a registry pull — removed
+    # pull_policy: never → always use local build, never pull from Docker Hub
+    pull_policy: never
+    container_name: lexreview-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - logs:/app/logs
+      - models:/app/models
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      QDRANT_USE_GRPC: "${QDRANT_USE_GRPC:-false}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1" ]
+      interval: 20s
+      timeout: 8s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - lexreview-net
+
+  # ── Frontend (React / Vite dev server) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: lexreview-frontend
+    restart: unless-stopped
+    ports:
+      - "5185:5185"
+    depends_on:
+      - api
+    logging: *default-logging
+    networks:
+      - lexreview-net
+
+  # ── Fine-tune Worker (CPU/MPS — Apple Silicon) ───────────────────────────────
+  finetune:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: finetune
+      args:
+        PYTHON_VERSION: "3.11"
+    pull_policy: never
+    container_name: lexreview-finetune
+    restart: "no"
+    profiles:
+      - finetune
+    volumes:
+      - models:/app/models
+      - logs:/app/logs
+      - ./data:/app/data:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    # FIX 2: NVIDIA device reservation removed
+    # M4 Pro = Apple Silicon, no NVIDIA GPU → run finetune outside Docker using MPS
+    healthcheck:
+      test: [ "CMD-SHELL", "test -f /app/models/.finetune_done || exit 1" ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging: *default-logging
+    networks:
+      - lexreview-net
+
+# ── Named Volumes ────────────────────────────────────────────────────────────
+volumes:
+  qdrant_data:
+    driver: local
+  logs:
+    driver: local
+  models:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  lexreview-net:
+    driver: bridge
+    name: lexreview-net

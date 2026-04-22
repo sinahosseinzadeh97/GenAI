@@ -1,0 +1,48 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+*.pem
+*.key
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Data (never commit raw documents) ────────────────────────────────────────
+data/sample_docs/*.pdf
+data/sample_docs/*.PDF
+!data/sample_docs/.gitkeep
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── ML models / weights ───────────────────────────────────────────────────────
+models/
+*.bin
+*.safetensors
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store

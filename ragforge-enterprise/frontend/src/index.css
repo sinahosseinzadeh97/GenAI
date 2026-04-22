@@ -1,0 +1,239 @@
+/* RAGForge Italia — Design System */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:    #0D0D0B; --bg2: #141410; --bg3: #1C1B16; --bg4: #252420;
+  --gold:  #C9A84C; --gold-dim: #8B6914; --cream: #F5EDD6;
+  --text:  #D4CCBA; --muted: #6B6456; --border: #2A2822;
+  --ok:    #2A6B45; --err: #6B2A2A;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+/* ── Image BG (behind everything, including fixed navbar) ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background: url('/bg.png') center center / cover no-repeat;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 1;
+  background: rgba(13,13,11,0.84);
+  pointer-events: none;
+}
+.shell {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; min-height: 100vh;
+  /* push content below fixed navbar */
+  padding-top: 64px;
+}
+
+/* ── Navbar — FIXED at top ── */
+nav.top {
+  height: 64px; display: flex; align-items: center; padding: 0 28px;
+  border-bottom: 1px solid var(--border); background: rgba(13,13,11,.93);
+  backdrop-filter: blur(18px);
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+}
+.logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-decoration: none; }
+.monogram { width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #C9A84C, #8B6914); color: #0D0D0B;
+  font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 15px; }
+.brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); font-weight: 600; }
+.nav-links { display: flex; gap: 2px; flex: 1; justify-content: center; }
+.nl { padding: 6px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; letter-spacing: .01em;
+  color: var(--muted); border: none; background: transparent; transition: all .15s; font-family: inherit; }
+.nl:hover { color: var(--text); background: var(--bg3); }
+.nl.active { color: var(--gold); background: rgba(201,168,76,.08); }
+.nav-end { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.on  { background: #2A6B45; box-shadow: 0 0 6px #2A6B4580; animation: pulse 2s infinite; }
+.dot.off { background: #6B2A2A; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.sys-label { font-size: 12px; color: var(--muted); }
+.req-badge { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+/* ── Layout ── */
+.view { padding: 52px 56px 48px; max-width: 1100px; margin: 0 auto; width: 100%; flex: 1; }
+
+/* ── Typography ── */
+.serif { font-family: 'Cormorant Garamond', serif; }
+.mono  { font-family: 'DM Mono', monospace; }
+
+/* Capped hero title — no bleed on any screen size */
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(32px, 5vw, 48px);
+  color: var(--cream); font-weight: 600; line-height: 1.1;
+}
+.hero-sub   { font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 8px; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+
+/* small-caps variant for section headers */
+.section-smallcaps {
+  font-family: 'Cormorant Garamond', serif;
+  font-variant: small-caps;
+  font-size: 14px; letter-spacing: .06em; color: var(--muted);
+  font-weight: 600; margin-bottom: 10px;
+}
+
+/* ── Decorative divider ── */
+.divider {
+  margin: 22px 0 18px;
+  border: none;
+  border-top: 1px solid var(--border);
+  opacity: .6;
+}
+
+/* ── Search — sophisticated legal tool style ── */
+.search-wrap { position: relative; margin-top: 36px; }
+.search-input {
+  width: 100%; height: 52px; padding: 0 130px 0 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(201,168,76,.28);
+  border-radius: 0;
+  color: var(--cream); font-size: 18px;
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  outline: none;
+  transition: border-bottom-color .25s;
+}
+.search-input::placeholder { color: var(--muted); font-style: italic; }
+.search-input:focus { border-bottom-color: var(--gold); }
+.search-btn {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  padding: 7px 20px; background: transparent; color: var(--gold);
+  border: 1px solid rgba(201,168,76,.4); border-radius: 0;
+  font-weight: 500; font-size: 13px; cursor: pointer;
+  font-family: inherit; letter-spacing: .04em;
+  transition: background .15s, color .15s;
+}
+.search-btn:hover { background: rgba(201,168,76,.08); }
+.search-btn:disabled { color: var(--muted); border-color: var(--border); cursor: not-allowed; background: transparent; }
+
+/* ── Materia filter chips — text links with · separators ── */
+.materia-filters {
+  display: flex; align-items: center; gap: 0;
+  flex-wrap: wrap; margin-top: 14px;
+}
+.materia-chip {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--muted);
+  font-family: inherit; letter-spacing: .02em;
+  padding: 0; transition: color .15s;
+}
+.materia-chip:hover { color: var(--text); }
+.materia-chip.active { color: var(--gold); }
+.materia-sep { color: var(--border); padding: 0 7px; font-size: 12px; user-select: none; }
+
+/* ── Cards ── */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.card + .card, .card + .mt { margin-top: 14px; }
+.mt { margin-top: 14px; }
+
+/* ── Inputs ── */
+.field { width: 100%; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--cream); font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s; }
+.field:focus { border-color: var(--gold); }
+.field-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+/* ── Buttons ── */
+.btn { padding: 10px 24px; background: var(--gold); color: #0D0D0B; border: none;
+  border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;
+  font-family: inherit; transition: opacity .15s; }
+.btn:disabled { background: var(--bg4); color: var(--muted); cursor: not-allowed; }
+
+/* ── Banners ── */
+.banner-amber  { padding: 12px 18px; background: rgba(139,105,20,.12); border: 1px solid var(--gold-dim); border-radius: 8px; color: #D4A843; font-size: 13px; }
+.banner-danger { padding: 12px 18px; background: rgba(107,42,42,.15); border: 1px solid var(--err); border-radius: 8px; color: #D47070; font-size: 13px; }
+.banner-warn   { padding: 12px 18px; background: rgba(139,105,20,.1); border: 1px solid #8B6914; border-radius: 8px; color: #C9A84C; font-size: 13px; margin-bottom: 16px; }
+
+/* ── Skeleton ── */
+.skel { border-radius: 6px; height: 14px; margin: 8px 0;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 400px 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+
+/* ── Confidence bar ── */
+.conf-track { height: 4px; background: var(--bg4); border-radius: 0; overflow: hidden; margin-top: 6px; }
+.conf-fill  { height: 100%; border-radius: 0; transition: width .8s ease; }
+
+/* ── CoT steps ── */
+.cot-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 0; padding: 12px 16px; margin-top: 10px;
+  border-left: 2px solid rgba(201,168,76,.2); }
+.cot-hd { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.cot-body { margin-top: 10px; font-size: 13px; color: var(--text); line-height: 1.8; white-space: pre-wrap; }
+
+/* ── Citations — clean card, no raw JSON ── */
+.cite {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 0; border-left: 2px solid rgba(201,168,76,.3);
+  padding: 14px 16px; margin-top: 8px;
+}
+.cite-fonte { color: var(--gold); font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.cite-title { color: var(--text); font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+.cite-score-track { height: 2px; background: var(--bg4); border-radius: 0; overflow: hidden; margin-bottom: 6px; }
+.cite-score-fill  { height: 100%; background: var(--gold-dim); transition: width .6s ease; }
+.cite-meta { font-size: 11px; color: var(--muted); }
+
+/* ── Vigenza status indicator ── */
+.vigenza-circle {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+
+/* ── Timeline ── */
+.tl { position: relative; padding-left: 22px; }
+.tl::before { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.tl-item { position: relative; margin-bottom: 18px; display: flex; align-items: baseline; gap: 10px; }
+.tl-dot { position: absolute; left: -19px; top: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--gold); background: var(--bg); }
+
+/* ── Drop zone ── */
+.drop { border: 1px dashed var(--border); border-radius: 0; padding: 48px; text-align: center; cursor: pointer; transition: border-color .2s; }
+.drop.over, .drop:hover { border-color: var(--gold); }
+
+/* ── Drop zone SVG icon ── */
+.drop-icon { opacity: .3; margin-bottom: 12px; }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x: auto; border-radius: 0; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { padding: 10px 14px; text-align: left; color: var(--muted); font-weight: 500;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border); background: var(--bg3); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 80px 0; }
+.empty-icon { font-size: 48px; opacity: .25; margin-bottom: 14px; }
+.empty-txt { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-style: italic; color: var(--muted); }
+
+/* ── Animations ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.fu { animation: fadeUp .35s ease both; }
+
+/* ── Footer — real-looking, left-aligned ── */
+footer.bar {
+  padding: 14px 28px 12px 31px; /* intentionally 31px — slight asymmetry */
+  border-top: 1px solid var(--border);
+  background: rgba(13,13,11,.9);
+  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-left { display: flex; align-items: center; gap: 6px; letter-spacing: .02em; }
+.footer-sep { opacity: .35; margin: 0 2px; }
+.gold-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px;
+  border: 1px solid rgba(201,168,76,.3); background: rgba(201,168,76,.06); color: var(--gold); font-size: 11px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .view { padding: 32px 20px 40px; }
+  nav.top { padding: 0 16px; }
+  .nav-links { gap: 0; }
+  .nl { padding: 6px 10px; font-size: 12px; }
+}

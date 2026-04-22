@@ -1,0 +1,173 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# RAGForge Italia — Italian Production Deployment Override
+#
+# Data residency: Italy (AWS eu-south-1 Milan / Azure Italy North)
+# Certification targets: ISO 27001, SOC 2 Type II, AgID
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.italia.yml up -d
+#
+# This file extends the base docker-compose.yml.  It does NOT replace it.
+# Only services and settings that differ from the base are declared here.
+#
+# Region deployment notes:
+#   AWS eu-south-1 (Milan):
+#     - EKS cluster in eu-south-1 (3 AZs: eu-south-1a/b/c)
+#     - Qdrant deployed on EC2 r6g.xlarge (Graviton3) in eu-south-1
+#     - S3 bucket for model artefacts in eu-south-1 (enforce bucket policy)
+#
+#   Azure Italy North (alt):
+#     - AKS cluster in Italy North
+#     - Azure Managed Disk for Qdrant storage (Zone-Redundant Storage)
+#     - Azure Key Vault for secrets (FILENET_PASSWORD, LEXISNEXIS_CLIENT_SECRET)
+#
+# Segreto professionale (professional secrecy) compliance:
+#   All data MUST remain within Italian territory.
+#   The DEPLOY_REGION and DATA_RESIDENCY labels are checked by the
+#   pre-deploy compliance script (scripts/check_data_residency.sh).
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-italia-labels: &italia-labels
+  labels:
+    ragforge.region: "eu-south-1"
+    ragforge.data-residency: "IT"
+    ragforge.market: "italia"
+    ragforge.compliance.gdpr: "true"
+    ragforge.compliance.agid: "true"
+    ragforge.compliance.segreto-professionale: "true"
+
+services:
+
+  # ── Qdrant — Italian region override ─────────────────────────────────────────
+  qdrant:
+    <<: *italia-labels
+    environment:
+      QDRANT__LOG_LEVEL: "${QDRANT_LOG_LEVEL:-INFO}"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__STORAGE__STORAGE_PATH: "/qdrant/storage"
+      # Restrict Qdrant CORS to Italian deployment origins only.
+      QDRANT__SERVICE__CORS_ALLOW_ORIGIN: "${QDRANT_CORS_ORIGIN:-https://app.ragforge.it}"
+
+  # ── FastAPI — Italian production overrides ────────────────────────────────────
+  api:
+    <<: *italia-labels
+    environment:
+      # Region identification
+      DEPLOY_REGION: "${DEPLOY_REGION:-eu-south-1}"
+      DATA_RESIDENCY: "IT"
+      LOCALE: "it-IT"
+
+      # Qdrant (set via ECS task env / AKS configmap in production)
+      QDRANT_HOST: "${QDRANT_HOST:-qdrant}"
+      QDRANT_PORT: "${QDRANT_PORT:-6333}"
+      QDRANT_USE_GRPC: "${QDRANT_USE_GRPC:-false}"
+
+      # Italian localisation
+      DEFAULT_LANGUAGE: "it"
+      LEGAL_DISCLAIMER_IT: "Le risposte fornite hanno carattere informativo e non costituiscono parere legale."
+
+      # Qdrant collection for the Italian legal knowledge base
+      ITALIA_COLLECTION_NAME: "${ITALIA_COLLECTION_NAME:-ragforge_italia}"
+
+      # Phase 6 — Integration connectors (credentials from secrets manager)
+      FILENET_BASE_URL: "${FILENET_BASE_URL:-}"
+      FILENET_REPOSITORY: "${FILENET_REPOSITORY:-FPOS}"
+      FILENET_USERNAME: "${FILENET_USERNAME:-}"
+      FILENET_PASSWORD: "${FILENET_PASSWORD:-}"
+      FILENET_WEBHOOK_SECRET: "${FILENET_WEBHOOK_SECRET:-}"
+
+      LEXISNEXIS_BASE_URL: "${LEXISNEXIS_BASE_URL:-https://api.lexisnexis.it/v2}"
+      LEXISNEXIS_CLIENT_ID: "${LEXISNEXIS_CLIENT_ID:-}"
+      LEXISNEXIS_CLIENT_SECRET: "${LEXISNEXIS_CLIENT_SECRET:-}"
+      LEXISNEXIS_WEBHOOK_SECRET: "${LEXISNEXIS_WEBHOOK_SECRET:-}"
+
+      NOTARTEL_BASE_URL: "${NOTARTEL_BASE_URL:-https://api.notartel.it/v3}"
+      NOTARTEL_TOKEN: "${NOTARTEL_TOKEN:-}"
+      NOTARTEL_STUB: "${NOTARTEL_STUB:-false}"
+
+      SIECIC_BASE_URL: "${SIECIC_BASE_URL:-https://pst.giustizia.it/api/v1}"
+      SIECIC_API_KEY: "${SIECIC_API_KEY:-}"
+      SIECIC_STUB: "${SIECIC_STUB:-false}"
+
+      # LLM — Italian legal model (Anthropic Claude for EU data residency)
+      LLM_PROVIDER: "${LLM_PROVIDER:-anthropic}"
+      LLM_MODEL: "${LLM_MODEL:-claude-sonnet-4-5}"
+      LLM_MAX_TOKENS: "${LLM_MAX_TOKENS:-4096}"
+
+      # Logging
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      PYTHONUNBUFFERED: "1"
+
+  # ── Loki — Compliance log aggregation ────────────────────────────────────────
+  # Loki stores structured JSON logs for the 90-day GDPR retention period.
+  # In production, replace with a managed service (AWS CloudWatch Logs in eu-south-1
+  # or Azure Monitor in Italy North) with appropriate retention policies.
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: ragforge-loki-italia
+    restart: unless-stopped
+    profiles:
+      - italia
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    <<: *italia-labels
+    networks:
+      - lexreview-net
+
+  # ── Grafana — Operational dashboard with AgID compliance templates ────────────
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: ragforge-grafana-italia
+    restart: unless-stopped
+    profiles:
+      - italia
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-change_me}"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
+      # AgID compliance: disable anonymous access
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    depends_on:
+      - loki
+    <<: *italia-labels
+    networks:
+      - lexreview-net
+
+# ── Additional Named Volumes ──────────────────────────────────────────────────
+volumes:
+  loki_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# Notes for production data residency enforcement:
+#
+# 1. AWS eu-south-1 deployment:
+#    - Tag all resources: DataResidency=IT, GDPR=true, SegrProf=true
+#    - Enable AWS Config rule: ec2-instances-in-vpc (VPC bound to eu-south-1)
+#    - S3 bucket policy: deny s3:GetObject unless aws:RequestedRegion == eu-south-1
+#
+# 2. Azure Italy North deployment:
+#    - Azure Policy: deny resource creation outside Italy North / Italy West
+#    - Key Vault reference for secrets (avoid env var plaintext):
+#        FILENET_PASSWORD: "@Microsoft.KeyVault(SecretUri=...)"
+#
+# 3. AgID qualification (PA customers):
+#    - Implement AgID SPID for authentication (beyond API key).
+#    - Submit to AGID Cloud Marketplace: https://marketplace.cloud.gov.it
+#    - Annual penetration test by an AGID-qualified lab required.

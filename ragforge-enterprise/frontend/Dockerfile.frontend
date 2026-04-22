@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# RAGForge Italia — Frontend Dockerfile
+#
+# Stage 1 (builder): Install deps + vite build
+# Stage 2 (runtime): nginx serves the static bundle
+#
+# The API proxy is handled by nginx at runtime (see nginx.conf injected below).
+# In Docker the backend is reachable at http://api:8000 via lexreview-net.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: build ────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Install dependencies (cached layer)
+COPY package*.json ./
+RUN npm ci --silent
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# ── Stage 2: runtime (nginx) ──────────────────────────────────────────────────
+FROM nginx:1.27-alpine AS runtime
+
+# Remove default config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Inject our config (proxies /api/* → backend api:8000)
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/ragforge.conf
+
+# Copy Vite build output
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 5185
+
+HEALTHCHECK --interval=20s --timeout=5s --retries=3 \
+    CMD wget -qO- http://localhost:5185/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

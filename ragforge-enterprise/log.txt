@@ -1,0 +1,61 @@
+d1a6d7c4 Update README.md
+bf4658c3 feat: complete security hardening and feature additions
+d298ee7d chore: resolve merge conflicts
+30517a88 chore: initial commit without node_modules
+5393127f Update README.md
+52f7ccb6 feat: add Agent Mode + update README
+2637c9cb Fix formatting of 'What is this' section header
+7d9a6c60 Update README.md
+c2f2118a feat: add RAG module for PDF contract intelligence
+7e3113cf Update README.md
+9391326e Fix header formatting in README.md
+91f0ceb3 docs: rename screenshot to bypass github cache
+a420962a docs: update UI screenshot in README
+fee13969 Update README.md
+e5898d8b feat: add QueryMind — NL to SQL via MCP
+99259942 Update README.md
+c7de4dc3 Update main.py
+de119a95 Delete AI_Mental_Wellbeing.zip
+55f0ed4d Add files via upload
+9dc9d396 Update README.md
+e28680e6 Update tools.py
+8562f360 Update agents.py
+ab052698 Update agents.py
+29d4981c Update README.md
+da694b9e Add GTM B2B Outreach - AI-powered cold email automation platform
+650f7921 Update tools.py
+329dd2a5 Update README.md
+1b3c5c8c Add AI_Home_Renovation: AI-powered home renovation planner with Telegram bot
+4088cdcd Update requirements.txt
+bf5d6a54 Update README.MD
+2715e81d Update readme.md
+c691f596 Update README.md
+8fdd42aa Update app.py
+1a4c7436 Update app.py
+634606b5 Add files via upload
+408c0cae Update README.md
+89edea69 Update README.md
+a40bdb40 Update root .gitignore
+4afba548 Add UniAssistant backend (FastAPI + SQLModel + SSE) — remove secrets & local files
+78ec818f Update readme.md
+3581190a Update README.md
+635c0c2c 📚 Update README.md - Complete documentation for production-ready LegalTech AI Assistant
+ed673d2b 🎉 Fix: Complete LegalTech AI Assistant - English responses & working frontend
+b38f3083 Remove duplicate LegalTechAiAssistant files from root directory
+cca0cc62 Merge master branch with LegalTechAiAssistant project
+2c786de2 Add LegalTechAiAssistant project
+527f90cf Add LegalTechAiAssistant project files
+542cae4c Add GenAI projects: Deep_Research, PersonalCo-Worker, and smart-chatbot
+6eeaaa80 Update README.md
+f44d534f Update readme.md
+af1a75c8 Update README.MD
+d618a6ba Update README.md
+7b25ef9a Add files via upload
+09a85ce9 Update readme.md
+cb6708fb Merge pull request #1 from sinahosseinzadeh97/add-personal-co-worker-clean
+9868576a Add PersonalCo-Worker (without .env) and update .gitignore
+e15b991d Update README.MD
+3fedbb12 Add Deep_Research project
+3580edce Update README.md
+72907e8f Ignore .env files
+4301d485 Add smart‑chatbot folder
